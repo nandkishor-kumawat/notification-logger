@@ -114,6 +114,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         Toast.makeText(app, if (ok) R.string.export_finished else R.string.export_failed, Toast.LENGTH_SHORT).show()
     }
 
+    fun setOpenNotifications(v: Boolean) = viewModelScope.launch { settingsRepo.setOpenNotifications(v) }
+
     fun setHideDuplicates(v: Boolean) = viewModelScope.launch { settingsRepo.setHideDuplicates(v) }
 
     val selection = MutableStateFlow<Selection>(Selection.None)

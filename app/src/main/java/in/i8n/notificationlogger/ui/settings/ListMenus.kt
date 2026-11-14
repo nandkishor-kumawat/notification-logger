@@ -35,7 +35,7 @@ import `in`.i8n.notificationlogger.data.settings.AppSettings
 /** Quick "log this app" toggle for the open app. */
 data class PerAppLogging(val appLabel: String, val enabled: Boolean, val onChange: (Boolean) -> Unit)
 
-private enum class Dialog { APP_SORT, NOTIFICATION_SORT, VERSIONS, CLEAR, KEEP }
+private enum class Dialog { APP_SORT, NOTIFICATION_SORT, VERSIONS, CLEAR, KEEP, OPEN_DISCLAIMER }
 
 @Composable
 fun AppListMenu(
@@ -46,6 +46,8 @@ fun AppListMenu(
     onKeepingDays: (Int) -> Unit = {},
     onExportAll: () -> Unit = {},
     onClearAll: () -> Unit = {},
+    openNotifications: Boolean = false,
+    onOpenNotifications: (Boolean) -> Unit = {},
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     var dialog by remember { mutableStateOf<Dialog?>(null) }
@@ -57,6 +59,15 @@ fun AppListMenu(
         DropdownMenuItem(
             text = { Text(stringResource(R.string.filter_settings)) },
             onClick = { menuOpen = false; onFilterSettings() },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.menu_open_notifications)) },
+            trailingIcon = { Checkbox(openNotifications, onCheckedChange = null) },
+            onClick = {
+                menuOpen = false
+                // Turning it on needs the user to accept the disclaimer first.
+                if (openNotifications) onOpenNotifications(false) else dialog = Dialog.OPEN_DISCLAIMER
+            },
         )
         DropdownMenuItem(
             text = { Text(stringResource(R.string.menu_export)) },
@@ -72,6 +83,17 @@ fun AppListMenu(
         )
     }
     when (dialog) {
+        Dialog.OPEN_DISCLAIMER -> AlertDialog(
+            onDismissRequest = { dialog = null },
+            title = { Text(stringResource(R.string.open_disclaimer_title)) },
+            text = { Text(stringResource(R.string.open_disclaimer_body)) },
+            confirmButton = {
+                TextButton(onClick = { onOpenNotifications(true); dialog = null }) {
+                    Text(stringResource(R.string.accept))
+                }
+            },
+            dismissButton = { TextButton(onClick = { dialog = null }) { Text(stringResource(R.string.reject)) } },
+        )
         Dialog.CLEAR -> ConfirmClearDialog(
             title = stringResource(R.string.clear_all_title),
             onConfirm = onClearAll,

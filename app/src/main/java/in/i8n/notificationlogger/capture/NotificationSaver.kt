@@ -1,5 +1,6 @@
 package `in`.i8n.notificationlogger.capture
 
+import android.app.PendingIntent
 import androidx.room.withTransaction
 import `in`.i8n.notificationlogger.data.db.AppDatabase
 import `in`.i8n.notificationlogger.data.model.ActiveNotificationItem
@@ -13,11 +14,21 @@ import kotlinx.coroutines.launch
 data class SystemKey(val packageName: String, val id: Int, val tag: String)
 
 sealed interface CaptureEvent {
-    data class Posted(val notification: ParsedNotification, val id: Int, val tag: String) : CaptureEvent
+    data class Posted(
+        val notification: ParsedNotification,
+        val id: Int,
+        val tag: String,
+        /** What tapping the notification does; kept in memory only, see [PendingIntentHolder]. */
+        val contentIntent: PendingIntent? = null,
+    ) : CaptureEvent
     data class Removed(val key: SystemKey) : CaptureEvent
 
     /** The full set of notifications the system currently shows (sent on listener connect). */
-    data class Sync(val activeKeys: Set<SystemKey>) : CaptureEvent
+    data class Sync(
+        val activeKeys: Set<SystemKey>,
+        /** Tap actions of the active notifications, to re-attach them to their logged rows. */
+        val contentIntents: Map<SystemKey, PendingIntent> = emptyMap(),
+    ) : CaptureEvent
 }
 
 /**
@@ -55,7 +66,7 @@ class NotificationSaver(
             is CaptureEvent.Removed -> db.activeNotificationDao().remove(
                 event.key.packageName, event.key.id, event.key.tag,
             )
-            is CaptureEvent.Sync -> onSync(event.activeKeys)
+            is CaptureEvent.Sync -> onSync(event.activeKeys, event.contentIntents)
         }
     }
 
@@ -68,7 +79,11 @@ class NotificationSaver(
             val active = activeDao.find(n.packageName, event.id, event.tag)
             val previous = active?.let { notifications.getById(it.previousNotificationItemId) }
             // Apps often re-post a notification unchanged (e.g. to bump a timestamp).
-            if (previous != null && previous.hasSameContentAs(n)) return@withTransaction
+            if (previous != null && previous.hasSameContentAs(n)) {
+                // Nothing to log, but the app may have attached a fresh action.
+                event.contentIntent?.let { PendingIntentHolder.put(previous.id, it) }
+                return@withTransaction
+            }
 
             val newId = notifications.insert(
                 NotificationItem(
@@ -82,6 +97,7 @@ class NotificationSaver(
                 ),
                 previousVersionId = previous?.id,
             )
+            event.contentIntent?.let { PendingIntentHolder.put(newId, it) }
             if (active == null) {
                 activeDao.insert(
                     ActiveNotificationItem(
@@ -98,12 +114,17 @@ class NotificationSaver(
     }
 
     /** Drops tracking rows for notifications that were dismissed while we were not listening. */
-    private suspend fun onSync(activeKeys: Set<SystemKey>) {
+    private suspend fun onSync(activeKeys: Set<SystemKey>, intents: Map<SystemKey, PendingIntent>) {
         val activeDao = db.activeNotificationDao()
         db.withTransaction {
             for (row in activeDao.getAll()) {
                 val key = SystemKey(row.appPackageName, row.systemId, row.systemTag)
-                if (key !in activeKeys) activeDao.remove(key.packageName, key.id, key.tag)
+                if (key !in activeKeys) {
+                    activeDao.remove(key.packageName, key.id, key.tag)
+                } else {
+                    // Restore the tap action of notifications that were already showing.
+                    intents[key]?.let { PendingIntentHolder.put(row.previousNotificationItemId, it) }
+                }
             }
         }
     }

@@ -1,6 +1,13 @@
 package `in`.i8n.notificationlogger.ui
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.os.Build
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import `in`.i8n.notificationlogger.capture.PendingIntentHolder
+import `in`.i8n.notificationlogger.data.model.NotificationItem
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
@@ -45,6 +52,14 @@ import `in`.i8n.notificationlogger.ui.settings.NotificationListMenu
 
 private val TWO_PANE_MIN_WIDTH = 900.dp
 
+private fun copyToClipboard(context: Context, item: NotificationItem) {
+    val text = listOfNotNull(item.title, item.text).joinToString("\n")
+    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    clipboard.setPrimaryClip(ClipData.newPlainText(null, text))
+    // Android 13+ shows its own "copied" confirmation.
+    if (Build.VERSION.SDK_INT < 33) Toast.makeText(context, R.string.copied, Toast.LENGTH_SHORT).show()
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
@@ -54,6 +69,7 @@ fun MainScreen(
     val apps by viewModel.apps.collectAsState()
     val selection by viewModel.selection.collectAsState()
     val settings by viewModel.appSettings.collectAsState()
+    val context = LocalContext.current
     val items = remember(selection) { viewModel.notificationsFor(selection) }.collectAsLazyPagingItems()
     var showFilter by rememberSaveable { mutableStateOf(false) }
 
@@ -71,7 +87,6 @@ fun MainScreen(
 
     if (showFilter) {
         BackHandler { showFilter = false }
-        val context = LocalContext.current
         val loggedPackages = apps.orEmpty().map { it.packageName }
         val installed by produceState<List<AppEntry>?>(null, loggedPackages) {
             value = InstalledApps.load(context, loggedPackages)
@@ -114,6 +129,8 @@ fun MainScreen(
                                 onKeepingDays = viewModel::setKeepingDays,
                                 onExportAll = { startExport(Selection.AllApps, "notifications.txt") },
                                 onClearAll = { viewModel.clearHistory(Selection.AllApps) },
+                                openNotifications = settings.openNotifications,
+                                onOpenNotifications = viewModel::setOpenNotifications,
                             )
                         },
                     )
@@ -131,6 +148,16 @@ fun MainScreen(
                 showAppName = selection == Selection.AllApps,
                 onBack = if (showBack) ({ viewModel.select(Selection.None) }) else null,
                 modifier = modifier,
+                onCopy = { copyToClipboard(context, it) },
+                onOpen = if (settings.openNotifications) {
+                    { item ->
+                        if (!PendingIntentHolder.open(context, item.id)) {
+                            Toast.makeText(context, R.string.action_not_available, Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                } else {
+                    null
+                },
                 menu = {
                     NotificationListMenu(
                         settings,

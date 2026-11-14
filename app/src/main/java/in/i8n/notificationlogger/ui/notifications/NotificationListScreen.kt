@@ -1,6 +1,8 @@
 package `in`.i8n.notificationlogger.ui.notifications
 
 import android.text.format.DateFormat
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -54,6 +56,9 @@ fun NotificationListScreen(
     modifier: Modifier = Modifier,
     menu: @Composable () -> Unit = {},
     banner: (@Composable () -> Unit)? = null,
+    onCopy: (NotificationItem) -> Unit = {},
+    /** Null = tapping does nothing (the "open on tap" setting is off). */
+    onOpen: ((NotificationItem) -> Unit)? = null,
     listState: LazyListState = rememberLazyListState(),
 ) {
     FollowNewestItems(items, listState)
@@ -93,7 +98,7 @@ fun NotificationListScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(count = items.itemCount, key = items.itemKey { it.id }) { index ->
-                        items[index]?.let { NotificationCard(it, showAppName) }
+                        items[index]?.let { NotificationCard(it, showAppName, onClick = onOpen?.let { open -> { open(it) } }, onLongClick = { onCopy(it) }) }
                     }
                 }
             }
@@ -102,8 +107,15 @@ fun NotificationListScreen(
 }
 
 @Composable
-fun NotificationCard(item: NotificationItem, showAppName: Boolean, modifier: Modifier = Modifier) {
-    Card(modifier.fillMaxWidth()) {
+@OptIn(ExperimentalFoundationApi::class)
+fun NotificationCard(
+    item: NotificationItem,
+    showAppName: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
+) {
+    Card(modifier.fillMaxWidth().combinedClickable(enabled = onClick != null || onLongClick != null, onClick = { onClick?.invoke() }, onLongClick = onLongClick)) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             if (showAppName) {
                 val label = rememberAppInfo(item.packageName).value?.label ?: item.packageName

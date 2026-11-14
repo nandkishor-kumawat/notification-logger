@@ -35,13 +35,13 @@
     <string name="logging_disabled_title">Logging was disabled for %1$s</string>
     <string name="logging_disabled_hint">You can change that in the menu.</string>
     <string name="menu_export">Export to text file</string>
-    <string name="menu_auto_delete">Delete old notifications</string>
+    <string name="menu_auto_delete">Auto-delete old notifications</string>
     <string name="menu_clear_history">Clear history</string>
     <string name="clear_all_title">Clear history of all apps?</string>
     <string name="clear_app_title">Clear history of %1$s?</string>
     <string name="clear_message">This can\'t be undone.</string>
     <string name="clear_confirm">Clear</string>
-    <string name="auto_delete_title">Delete notifications older than</string>
+    <string name="auto_delete_title">Auto-delete notifications older than</string>
     <string name="keep_never">Never</string>
     <plurals name="keep_days">
         <item quantity="one">%d day</item>
@@ -49,4 +49,11 @@
     </plurals>
     <string name="export_finished">Export finished</string>
     <string name="export_failed">Export failed</string>
+    <string name="copied">Copied to clipboard</string>
+    <string name="action_not_available">The action is not available anymore</string>
+    <string name="menu_open_notifications">Open notification on tap</string>
+    <string name="open_disclaimer_title">Open notifications</string>
+    <string name="open_disclaimer_body">The action of a notification can not be saved reliably. Tapping an entry only works while the original notification is recent and this app has not been restarted; otherwise you will see that the action is not available anymore.</string>
+    <string name="accept">Accept</string>
+    <string name="reject">Reject</string>
 </resources>

@@ -29,7 +29,14 @@ class LoggerNotificationListenerService : NotificationListenerService() {
 
     override fun onListenerConnected() {
         val active = runCatching { activeNotifications }.getOrNull() ?: return
-        saver?.submit(CaptureEvent.Sync(active.map { it.key() }.toSet()))
+        saver?.submit(
+            CaptureEvent.Sync(
+                activeKeys = active.map { it.key() }.toSet(),
+                contentIntents = active.mapNotNull { sbn ->
+                    sbn.notification.contentIntent?.let { sbn.key() to it }
+                }.toMap(),
+            ),
+        )
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
@@ -40,7 +47,7 @@ class LoggerNotificationListenerService : NotificationListenerService() {
             time = sbn.postTime,
             extras = sbn.notification.extras ?: return,
         ) ?: return
-        saver?.submit(CaptureEvent.Posted(parsed, sbn.id, sbn.tag.orEmpty()))
+        saver?.submit(CaptureEvent.Posted(parsed, sbn.id, sbn.tag.orEmpty(), sbn.notification.contentIntent))
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
