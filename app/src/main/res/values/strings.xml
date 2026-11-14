@@ -34,4 +34,19 @@
     <string name="menu_log_app">Log %1$s</string>
     <string name="logging_disabled_title">Logging was disabled for %1$s</string>
     <string name="logging_disabled_hint">You can change that in the menu.</string>
+    <string name="menu_export">Export to text file</string>
+    <string name="menu_auto_delete">Delete old notifications</string>
+    <string name="menu_clear_history">Clear history</string>
+    <string name="clear_all_title">Clear history of all apps?</string>
+    <string name="clear_app_title">Clear history of %1$s?</string>
+    <string name="clear_message">This can\'t be undone.</string>
+    <string name="clear_confirm">Clear</string>
+    <string name="auto_delete_title">Delete notifications older than</string>
+    <string name="keep_never">Never</string>
+    <plurals name="keep_days">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+    <string name="export_finished">Export finished</string>
+    <string name="export_failed">Export failed</string>
 </resources>

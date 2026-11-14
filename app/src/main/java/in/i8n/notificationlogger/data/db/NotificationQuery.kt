@@ -12,6 +12,10 @@ object NotificationQuery {
         sorting: NotificationSorting,
         versionHandling: VersionHandling,
         hideDuplicates: Boolean,
+        /** Only rows with id <= this (a stable snapshot for chunked reads). */
+        maxId: Long? = null,
+        limit: Int? = null,
+        offset: Int = 0,
     ): SupportSQLiteQuery {
         val where = mutableListOf<String>()
         val args = mutableListOf<Any>()
@@ -25,10 +29,12 @@ object NotificationQuery {
             VersionHandling.NEWEST_ONLY -> "is_newest_version = 1"
         }
         versionClause?.let { where += it }
+        maxId?.let { where += "id <= $it" }
         if (hideDuplicates) {
             // Keep only the latest notification of each duplicate group. The version filter is
             // repeated inside so a group is judged by the rows that would otherwise be shown.
-            val inner = versionClause?.let { " WHERE $it" }.orEmpty()
+            val innerClauses = listOfNotNull(versionClause, maxId?.let { "id <= $it" })
+            val inner = if (innerClauses.isEmpty()) "" else " WHERE " + innerClauses.joinToString(" AND ")
             where += "id IN (SELECT MAX(id) FROM notifications$inner GROUP BY duplicate_group_id)"
         }
         val order = when (sorting) {
@@ -39,6 +45,7 @@ object NotificationQuery {
             append("SELECT * FROM notifications")
             if (where.isNotEmpty()) append(" WHERE ").append(where.joinToString(" AND "))
             append(" ORDER BY ").append(order)
+            if (limit != null) append(" LIMIT ").append(limit).append(" OFFSET ").append(offset)
         }
         return SimpleSQLiteQuery(sql, args.toTypedArray())
     }

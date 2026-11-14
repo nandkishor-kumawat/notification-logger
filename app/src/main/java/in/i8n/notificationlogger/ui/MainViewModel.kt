@@ -1,6 +1,9 @@
 package `in`.i8n.notificationlogger.ui
 
 import android.app.Application
+import android.net.Uri
+import android.text.format.DateFormat
+import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.Pager
@@ -15,7 +18,14 @@ import `in`.i8n.notificationlogger.data.model.NotificationItem
 import `in`.i8n.notificationlogger.data.model.NotificationSorting
 import `in`.i8n.notificationlogger.data.model.VersionHandling
 import `in`.i8n.notificationlogger.data.settings.AppSettings
+import `in`.i8n.notificationlogger.R
+import `in`.i8n.notificationlogger.data.export.NotificationExporter
+import `in`.i8n.notificationlogger.data.retention.RetentionScheduler
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import `in`.i8n.notificationlogger.data.settings.SettingsRepository
 import `in`.i8n.notificationlogger.ui.appinfo.AppInfoProvider
 import kotlinx.coroutines.CoroutineScope
@@ -64,6 +74,45 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         settingsRepo.setInvertedApps(set)
     }
     fun setLogging(pkg: String, enabled: Boolean) = viewModelScope.launch { settingsRepo.setLogging(pkg, enabled) }
+
+    fun setKeepingDays(days: Int) = viewModelScope.launch {
+        settingsRepo.setKeepingDays(days)
+        RetentionScheduler.runNow(getApplication())
+    }
+
+    fun clearHistory(selection: Selection) = viewModelScope.launch {
+        when (selection) {
+            is Selection.App -> dao.deleteByApp(selection.packageName)
+            else -> dao.deleteAll()
+        }
+    }
+
+    /** Writes the notifications of [selection], with the current sort/version/duplicate settings. */
+    fun export(uri: Uri, selection: Selection) = viewModelScope.launch {
+        val app = getApplication<Application>()
+        val ok = withContext(Dispatchers.IO) {
+            runCatching {
+                val s = settingsRepo.current()
+                val pkg = (selection as? Selection.App)?.packageName
+                val locale = Locale.getDefault()
+                val format = SimpleDateFormat(DateFormat.getBestDateTimePattern(locale, "yMMMdjmmss"), locale)
+                val out = app.contentResolver.openOutputStream(uri, "wt") ?: error("cannot open $uri")
+                out.bufferedWriter().use { writer ->
+                    NotificationExporter(dao).export(
+                        out = writer,
+                        packageName = pkg,
+                        sorting = s.notificationSorting,
+                        versionHandling = s.versionHandling,
+                        hideDuplicates = s.hideDuplicates,
+                        appLabel = { AppInfoProvider.label(app, it) },
+                        formatTime = { format.format(Date(it)) },
+                        header = pkg?.let { AppInfoProvider.label(app, it) },
+                    )
+                }
+            }.isSuccess
+        }
+        Toast.makeText(app, if (ok) R.string.export_finished else R.string.export_failed, Toast.LENGTH_SHORT).show()
+    }
 
     fun setHideDuplicates(v: Boolean) = viewModelScope.launch { settingsRepo.setHideDuplicates(v) }
 

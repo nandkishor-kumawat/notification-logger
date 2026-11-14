@@ -1,6 +1,8 @@
 package `in`.i8n.notificationlogger.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
@@ -55,6 +57,18 @@ fun MainScreen(
     val items = remember(selection) { viewModel.notificationsFor(selection) }.collectAsLazyPagingItems()
     var showFilter by rememberSaveable { mutableStateOf(false) }
 
+    // Export: remember what to export while the system file picker is open.
+    var pendingExport by remember { mutableStateOf<Selection?>(null) }
+    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) { uri ->
+        val target = pendingExport
+        pendingExport = null
+        if (uri != null && target != null) viewModel.export(uri, target)
+    }
+    fun startExport(target: Selection, fileName: String) {
+        pendingExport = target
+        exportLauncher.launch(fileName)
+    }
+
     if (showFilter) {
         BackHandler { showFilter = false }
         val context = LocalContext.current
@@ -91,7 +105,17 @@ fun MainScreen(
                 topBar = {
                     TopAppBar(
                         title = { Text(stringResource(R.string.app_name)) },
-                        actions = { AppListMenu(settings.appSorting, viewModel::setAppSorting, onFilterSettings = { showFilter = true }) },
+                        actions = {
+                            AppListMenu(
+                                settings.appSorting,
+                                viewModel::setAppSorting,
+                                onFilterSettings = { showFilter = true },
+                                keepingDays = settings.keepingDays,
+                                onKeepingDays = viewModel::setKeepingDays,
+                                onExportAll = { startExport(Selection.AllApps, "notifications.txt") },
+                                onClearAll = { viewModel.clearHistory(Selection.AllApps) },
+                            )
+                        },
                     )
                 },
             ) { padding ->
@@ -116,6 +140,16 @@ fun MainScreen(
                         perApp = selectedPackage?.let { pkg ->
                             PerAppLogging(detailTitle, loggingEnabled) { viewModel.setLogging(pkg, it) }
                         },
+                        clearTitle = if (selectedPackage != null) {
+                            stringResource(R.string.clear_app_title, detailTitle)
+                        } else {
+                            stringResource(R.string.clear_all_title)
+                        },
+                        onExport = {
+                            val name = if (selectedPackage != null) "notifications-$selectedPackage.txt" else "notifications.txt"
+                            startExport(selection, name)
+                        },
+                        onClear = { viewModel.clearHistory(selection) },
                     )
                 },
                 banner = if (selectedPackage != null && !loggingEnabled) {

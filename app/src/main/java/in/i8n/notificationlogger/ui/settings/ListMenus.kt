@@ -23,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import `in`.i8n.notificationlogger.R
@@ -34,13 +35,17 @@ import `in`.i8n.notificationlogger.data.settings.AppSettings
 /** Quick "log this app" toggle for the open app. */
 data class PerAppLogging(val appLabel: String, val enabled: Boolean, val onChange: (Boolean) -> Unit)
 
-private enum class Dialog { APP_SORT, NOTIFICATION_SORT, VERSIONS }
+private enum class Dialog { APP_SORT, NOTIFICATION_SORT, VERSIONS, CLEAR, KEEP }
 
 @Composable
 fun AppListMenu(
     sorting: AppSorting,
     onSorting: (AppSorting) -> Unit,
     onFilterSettings: () -> Unit = {},
+    keepingDays: Int = AppSettings.KEEP_FOREVER,
+    onKeepingDays: (Int) -> Unit = {},
+    onExportAll: () -> Unit = {},
+    onClearAll: () -> Unit = {},
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     var dialog by remember { mutableStateOf<Dialog?>(null) }
@@ -53,6 +58,34 @@ fun AppListMenu(
             text = { Text(stringResource(R.string.filter_settings)) },
             onClick = { menuOpen = false; onFilterSettings() },
         )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.menu_export)) },
+            onClick = { menuOpen = false; onExportAll() },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.menu_auto_delete)) },
+            onClick = { menuOpen = false; dialog = Dialog.KEEP },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.menu_clear_history)) },
+            onClick = { menuOpen = false; dialog = Dialog.CLEAR },
+        )
+    }
+    when (dialog) {
+        Dialog.CLEAR -> ConfirmClearDialog(
+            title = stringResource(R.string.clear_all_title),
+            onConfirm = onClearAll,
+            onDismiss = { dialog = null },
+        )
+        Dialog.KEEP -> ChoiceDialog(
+            title = stringResource(R.string.auto_delete_title),
+            options = listOf(AppSettings.KEEP_FOREVER to stringResource(R.string.keep_never)) +
+                listOf(1, 7, 30, 90, 365).map { it to pluralStringResource(R.plurals.keep_days, it, it) },
+            selected = keepingDays,
+            onSelect = onKeepingDays,
+            onDismiss = { dialog = null },
+        )
+        else -> Unit
     }
     if (dialog == Dialog.APP_SORT) {
         ChoiceDialog(
@@ -76,6 +109,9 @@ fun NotificationListMenu(
     onVersions: (VersionHandling) -> Unit,
     onHideDuplicates: (Boolean) -> Unit,
     perApp: PerAppLogging? = null,
+    clearTitle: String = "",
+    onExport: () -> Unit = {},
+    onClear: () -> Unit = {},
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     var dialog by remember { mutableStateOf<Dialog?>(null) }
@@ -100,6 +136,14 @@ fun NotificationListMenu(
             trailingIcon = { Checkbox(settings.hideDuplicates, onCheckedChange = null) },
             onClick = { onHideDuplicates(!settings.hideDuplicates) },
         )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.menu_export)) },
+            onClick = { menuOpen = false; onExport() },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.menu_clear_history)) },
+            onClick = { menuOpen = false; dialog = Dialog.CLEAR },
+        )
     }
     when (dialog) {
         Dialog.NOTIFICATION_SORT -> ChoiceDialog(
@@ -110,6 +154,11 @@ fun NotificationListMenu(
             ),
             selected = settings.notificationSorting,
             onSelect = onSorting,
+            onDismiss = { dialog = null },
+        )
+        Dialog.CLEAR -> ConfirmClearDialog(
+            title = clearTitle,
+            onConfirm = onClear,
             onDismiss = { dialog = null },
         )
         Dialog.VERSIONS -> ChoiceDialog(
@@ -168,6 +217,19 @@ fun <T> ChoiceDialog(
             }
         },
         confirmButton = {},
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
+}
+
+@Composable
+fun ConfirmClearDialog(title: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = { Text(stringResource(R.string.clear_message)) },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(); onDismiss() }) { Text(stringResource(R.string.clear_confirm)) }
+        },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
 }

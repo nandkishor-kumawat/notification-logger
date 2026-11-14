@@ -4,6 +4,8 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.paging.LoadState
+import androidx.paging.LoadStates
 import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -16,6 +18,12 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+
+private val DONE = LoadStates(
+    LoadState.NotLoading(endOfPaginationReached = true),
+    LoadState.NotLoading(endOfPaginationReached = true),
+    LoadState.NotLoading(endOfPaginationReached = true),
+)
 
 @RunWith(AndroidJUnit4::class)
 class BrowsingUiTest {
@@ -58,7 +66,7 @@ class BrowsingUiTest {
     @Test
     fun emptyNotificationListShowsEmptyState() {
         compose.setContent {
-            val items = flowOf(PagingData.empty<NotificationItem>()).collectAsLazyPagingItems()
+            val items = flowOf(PagingData.empty<NotificationItem>(DONE)).collectAsLazyPagingItems()
             NotificationListScreen("App", items, showAppName = false, onBack = {})
         }
         compose.onNodeWithText("No notifications").assertIsDisplayed()

@@ -56,6 +56,12 @@ abstract class NotificationDao {
     @RawQuery(observedEntities = [NotificationItem::class])
     protected abstract fun pagedRaw(query: SupportSQLiteQuery): PagingSource<Int, NotificationItem>
 
+    @RawQuery
+    abstract suspend fun list(query: SupportSQLiteQuery): List<NotificationItem>
+
+    @Query("SELECT COALESCE(MAX(id), 0) FROM notifications")
+    abstract suspend fun maxId(): Long
+
     fun paged(query: SupportSQLiteQuery): PagingSource<Int, NotificationItem> = pagedRaw(query)
 
     @Query(
