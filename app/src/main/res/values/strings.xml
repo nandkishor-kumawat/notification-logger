@@ -6,5 +6,13 @@
     <string name="permission_allow">Allow access</string>
     <string name="permission_restricted_hint">If the switch is greyed out or Android shows \"Restricted setting\": open App info, tap the ⋮ menu and choose \"Allow restricted settings\", then try again.</string>
     <string name="permission_open_app_info">Open App info</string>
-    <string name="home_logging_active">Logging is active. Notifications will appear here.</string>
+    <string name="all_apps">All apps</string>
+    <string name="app_list_empty">There are not any notifications yet</string>
+    <string name="notification_list_empty">No notifications</string>
+    <string name="select_app_hint">Select an app to see its notifications</string>
+    <string name="back">Back</string>
+    <plurals name="notification_count">
+        <item quantity="one">%d notification</item>
+        <item quantity="other">%d notifications</item>
+    </plurals>
 </resources>

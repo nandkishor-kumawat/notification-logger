@@ -180,3 +180,36 @@ class NotificationDaoTest {
         assertFalse(active.find("a", 1) != null)
     }
 }
+
+@RunWith(AndroidJUnit4::class)
+class LargeDatasetTest {
+    @Test
+    fun pagesThroughThousandsOfRows() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build()
+        try {
+            val dao = db.notificationDao()
+            for (i in 1..5000) {
+                dao.insert(NotificationItem(packageName = "p${i % 20}", time = i.toLong(), title = "t$i", text = "x"))
+            }
+            val source = dao.paged(
+                NotificationQuery.build(null, NotificationSorting.NEWEST_FIRST, VersionHandling.SHOW_ALL, false),
+            )
+            val start = System.currentTimeMillis()
+            var key: Int? = null
+            var total = 0
+            var pages = 0
+            while (true) {
+                val page = source.load(PagingSource.LoadParams.Refresh(key, 40, false)) as PagingSource.LoadResult.Page
+                total += page.data.size
+                pages++
+                key = page.nextKey ?: break
+                if (pages == 1) assertEquals("t5000", page.data.first().title)
+            }
+            assertEquals(5000, total)
+            assertTrue("paging took too long", System.currentTimeMillis() - start < 10_000)
+        } finally {
+            db.close()
+        }
+    }
+}

@@ -9,20 +9,16 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import `in`.i8n.notificationlogger.capture.ServiceCheckUtil
+import `in`.i8n.notificationlogger.ui.MainScreen
 import `in`.i8n.notificationlogger.ui.onboarding.PermissionCard
 import `in`.i8n.notificationlogger.ui.theme.NotificationLoggerTheme
 
@@ -38,19 +34,16 @@ class MainActivity : ComponentActivity() {
                     listenerEnabled = ServiceCheckUtil.isListenerEnabled(this@MainActivity)
                     onPauseOrDispose {}
                 }
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Column(Modifier.padding(innerPadding).padding(16.dp)) {
-                        if (!listenerEnabled) {
-                            PermissionCard(
-                                showRestrictedSettingsHint = ServiceCheckUtil.mayNeedRestrictedSettingsHint(this@MainActivity),
-                                onAllow = { openListenerSettings() },
-                                onOpenAppInfo = { openAppInfo() },
-                            )
-                        } else {
-                            Text(stringResource(R.string.home_logging_active))
-                        }
+                MainScreen(permissionCard = {
+                    if (!listenerEnabled) {
+                        PermissionCard(
+                            showRestrictedSettingsHint = ServiceCheckUtil.mayNeedRestrictedSettingsHint(this@MainActivity),
+                            onAllow = { openListenerSettings() },
+                            onOpenAppInfo = { openAppInfo() },
+                            modifier = Modifier.padding(vertical = 8.dp),
+                        )
                     }
-                }
+                })
             }
         }
     }
