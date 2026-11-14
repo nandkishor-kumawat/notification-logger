@@ -6,7 +6,7 @@ Pick one or more. All start from the signed release APK/AAB (see README).
 Share the signed APK. On Android 13+ users must allow **restricted settings** for notification access (the app explains this). No review needed.
 
 ## F-Droid
-Fits well: no internet permission, no proprietary dependencies, no tracking. Requires the source to be public, a tagged release, and a metadata file in the F-Droid data repository. F-Droid builds and signs the app itself unless you use reproducible builds.
+Fits well (GPL-3.0 licensed, see `LICENSE`): no internet permission, no proprietary dependencies, no tracking. Requires the source to be public, a tagged release, and a metadata file in the F-Droid data repository. F-Droid builds and signs the app itself unless you use reproducible builds.
 
 ## Google Play
 - Upload the **AAB**; enrol in Play App Signing.

@@ -61,3 +61,7 @@ Some phone makers (Xiaomi, Samsung, OnePlus, Huawei, Oppo, Vivo…) aggressively
 - [Manual test matrix](docs/manual-test-matrix.md)
 - [Distribution notes](docs/distribution.md)
 - [Store listing (en-US)](docs/store-listing.md)
+
+## License
+
+Notification Logger is free software, licensed under the [GNU General Public License v3.0](LICENSE). You may use, study, share and modify it; modified versions you distribute must also be released under the GPL-3.0 with their source.
