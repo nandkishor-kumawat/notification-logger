@@ -1,0 +1,214 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "279a7eb6ba36e22f49aeca0dee6e4780",
+    "entities": [
+      {
+        "tableName": "notifications",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `package_name` TEXT NOT NULL, `time` INTEGER NOT NULL, `title` TEXT, `text` TEXT, `progress` INTEGER NOT NULL, `progress_max` INTEGER NOT NULL, `progress_indeterminate` INTEGER NOT NULL, `is_oldest_version` INTEGER NOT NULL, `is_newest_version` INTEGER NOT NULL, `duplicate_group_id` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "packageName",
+            "columnName": "package_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "time",
+            "columnName": "time",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "text",
+            "columnName": "text",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "progress",
+            "columnName": "progress",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "progressMax",
+            "columnName": "progress_max",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "progressIndeterminate",
+            "columnName": "progress_indeterminate",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isOldestVersion",
+            "columnName": "is_oldest_version",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isNewestVersion",
+            "columnName": "is_newest_version",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "duplicateGroupId",
+            "columnName": "duplicate_group_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_notifications_time",
+            "unique": false,
+            "columnNames": [
+              "time"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_notifications_time` ON `${TABLE_NAME}` (`time`)"
+          },
+          {
+            "name": "index_notifications_package_name_time",
+            "unique": false,
+            "columnNames": [
+              "package_name",
+              "time"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_notifications_package_name_time` ON `${TABLE_NAME}` (`package_name`, `time`)"
+          },
+          {
+            "name": "index_notifications_is_oldest_version",
+            "unique": false,
+            "columnNames": [
+              "is_oldest_version"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_notifications_is_oldest_version` ON `${TABLE_NAME}` (`is_oldest_version`)"
+          },
+          {
+            "name": "index_notifications_is_newest_version",
+            "unique": false,
+            "columnNames": [
+              "is_newest_version"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_notifications_is_newest_version` ON `${TABLE_NAME}` (`is_newest_version`)"
+          },
+          {
+            "name": "index_notifications_duplicate_group_id",
+            "unique": false,
+            "columnNames": [
+              "duplicate_group_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_notifications_duplicate_group_id` ON `${TABLE_NAME}` (`duplicate_group_id`)"
+          }
+        ]
+      },
+      {
+        "tableName": "active_notifications",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `app_package_name` TEXT NOT NULL, `system_id` INTEGER NOT NULL, `system_tag` TEXT NOT NULL, `previous_notification_item_id` INTEGER NOT NULL, FOREIGN KEY(`previous_notification_item_id`) REFERENCES `notifications`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "appPackageName",
+            "columnName": "app_package_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "systemId",
+            "columnName": "system_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "systemTag",
+            "columnName": "system_tag",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "previousNotificationItemId",
+            "columnName": "previous_notification_item_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_active_notifications_app_package_name_system_id_system_tag",
+            "unique": true,
+            "columnNames": [
+              "app_package_name",
+              "system_id",
+              "system_tag"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_active_notifications_app_package_name_system_id_system_tag` ON `${TABLE_NAME}` (`app_package_name`, `system_id`, `system_tag`)"
+          },
+          {
+            "name": "index_active_notifications_previous_notification_item_id",
+            "unique": false,
+            "columnNames": [
+              "previous_notification_item_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_active_notifications_previous_notification_item_id` ON `${TABLE_NAME}` (`previous_notification_item_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "notifications",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "previous_notification_item_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '279a7eb6ba36e22f49aeca0dee6e4780')"
+    ]
+  }
+}
