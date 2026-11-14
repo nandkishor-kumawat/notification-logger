@@ -62,4 +62,6 @@
     <string name="auth_setup_lock">Set up a screen lock in your phone\'s settings first.</string>
     <string name="privacy_policy">Privacy policy</string>
     <string name="app_list_empty_no_access">Allow notification access to start logging</string>
+    <string name="a11y_open_notification">Open original notification</string>
+    <string name="a11y_copy_notification">Copy to clipboard</string>
 </resources>

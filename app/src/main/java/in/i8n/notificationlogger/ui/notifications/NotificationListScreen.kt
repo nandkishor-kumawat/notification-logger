@@ -115,7 +115,13 @@ fun NotificationCard(
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
 ) {
-    Card(modifier.fillMaxWidth().combinedClickable(enabled = onClick != null || onLongClick != null, onClick = { onClick?.invoke() }, onLongClick = onLongClick)) {
+    Card(modifier.fillMaxWidth().combinedClickable(
+        enabled = onClick != null || onLongClick != null,
+        onClickLabel = stringResource(R.string.a11y_open_notification),
+        onClick = { onClick?.invoke() },
+        onLongClickLabel = stringResource(R.string.a11y_copy_notification),
+        onLongClick = onLongClick,
+    )) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             if (showAppName) {
                 val label = rememberAppInfo(item.packageName).value?.label ?: item.packageName

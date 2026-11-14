@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.SystemClock
 import android.provider.Settings
 import android.view.WindowManager
 import android.widget.Toast
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.flow.map
@@ -39,7 +41,16 @@ class MainActivity : FragmentActivity() {
     private val settingsRepo by lazy { SettingsRepository(this) }
     private var prompting = false
 
+    private companion object {
+        const val SPLASH_MIN_MS = 500L
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Keep the splash up for at least SPLASH_MIN_MS, even if the app is ready sooner.
+        val splashStart = SystemClock.uptimeMillis()
+        installSplashScreen().setKeepOnScreenCondition {
+            SystemClock.uptimeMillis() - splashStart < SPLASH_MIN_MS
+        }
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
@@ -68,6 +79,7 @@ class MainActivity : FragmentActivity() {
                     requireAuth == null -> Box(Modifier.fillMaxSize())
                     locked -> LockScreen(onUnlock = ::promptForAuth)
                     else -> {
+                        val restrictedHint = remember { ServiceCheckUtil.mayNeedRestrictedSettingsHint(this@MainActivity) }
                         var listenerEnabled by remember { mutableStateOf(ServiceCheckUtil.isListenerEnabled(this)) }
                         // Re-check whenever we come back from system settings.
                         LifecycleResumeEffect(Unit) {
@@ -78,7 +90,7 @@ class MainActivity : FragmentActivity() {
                             permissionCard = { openPrivacyPolicy ->
                                 if (!listenerEnabled) {
                                     PermissionCard(
-                                        showRestrictedSettingsHint = ServiceCheckUtil.mayNeedRestrictedSettingsHint(this@MainActivity),
+                                        showRestrictedSettingsHint = restrictedHint,
                                         onAllow = { openListenerSettings() },
                                         onOpenAppInfo = { openAppInfo() },
                                         modifier = Modifier.padding(vertical = 8.dp),

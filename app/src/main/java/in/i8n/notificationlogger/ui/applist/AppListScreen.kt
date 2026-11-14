@@ -3,7 +3,7 @@ package `in`.i8n.notificationlogger.ui.applist
 import android.text.format.DateUtils
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -104,7 +104,7 @@ private fun AppRow(
         Modifier
             .fillMaxWidth()
             .background(if (selected) MaterialTheme.colorScheme.secondaryContainer else androidx.compose.ui.graphics.Color.Transparent)
-            .clickable(onClick = onClick)
+            .selectable(selected = selected, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

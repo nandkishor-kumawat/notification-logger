@@ -23,19 +23,24 @@ object NotificationQuery {
             where += "package_name = ?"
             args += packageName
         }
-        val versionClause = when (versionHandling) {
+        fun versionClause(prefix: String) = when (versionHandling) {
             VersionHandling.SHOW_ALL -> null
-            VersionHandling.OLDEST_ONLY -> "is_oldest_version = 1"
-            VersionHandling.NEWEST_ONLY -> "is_newest_version = 1"
+            VersionHandling.OLDEST_ONLY -> "${prefix}is_oldest_version = 1"
+            VersionHandling.NEWEST_ONLY -> "${prefix}is_newest_version = 1"
         }
-        versionClause?.let { where += it }
+        versionClause("")?.let { where += it }
         maxId?.let { where += "id <= $it" }
         if (hideDuplicates) {
-            // Keep only the latest notification of each duplicate group. The version filter is
-            // repeated inside so a group is judged by the rows that would otherwise be shown.
-            val innerClauses = listOfNotNull(versionClause, maxId?.let { "id <= $it" })
-            val inner = if (innerClauses.isEmpty()) "" else " WHERE " + innerClauses.joinToString(" AND ")
-            where += "id IN (SELECT MAX(id) FROM notifications$inner GROUP BY duplicate_group_id)"
+            // Keep a row only if no later row of its duplicate group would also be shown.
+            // Written as a correlated lookup (not GROUP BY/MAX) so the time index can drive the
+            // result and stop after LIMIT; see QueryPlanTest.
+            val later = listOfNotNull(
+                "d.duplicate_group_id = notifications.duplicate_group_id",
+                "d.id > notifications.id",
+                versionClause("d."),
+                maxId?.let { "d.id <= $it" },
+            )
+            where += "NOT EXISTS (SELECT 1 FROM notifications d WHERE ${later.joinToString(" AND ")})"
         }
         val order = when (sorting) {
             NotificationSorting.NEWEST_FIRST -> "time DESC, id DESC"

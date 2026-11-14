@@ -1,6 +1,6 @@
 package `in`.i8n.notificationlogger.ui.settings
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,6 +24,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -67,6 +72,7 @@ fun AppListMenu(
         DropdownMenuItem(
             text = { Text(stringResource(R.string.menu_open_notifications)) },
             trailingIcon = { Checkbox(openNotifications, onCheckedChange = null) },
+            modifier = Modifier.checkable(openNotifications),
             onClick = {
                 menuOpen = false
                 // Turning it on needs the user to accept the disclaimer first.
@@ -76,6 +82,7 @@ fun AppListMenu(
         DropdownMenuItem(
             text = { Text(stringResource(R.string.menu_require_auth)) },
             trailingIcon = { Checkbox(requireAuth, onCheckedChange = null) },
+            modifier = Modifier.checkable(requireAuth),
             onClick = { menuOpen = false; onRequireAuth(!requireAuth) },
         )
         DropdownMenuItem(
@@ -156,6 +163,7 @@ fun NotificationListMenu(
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.menu_log_app, perApp.appLabel)) },
                 trailingIcon = { Checkbox(perApp.enabled, onCheckedChange = null) },
+            modifier = Modifier.checkable(perApp.enabled),
                 onClick = { perApp.onChange(!perApp.enabled) },
             )
         }
@@ -170,6 +178,7 @@ fun NotificationListMenu(
         DropdownMenuItem(
             text = { Text(stringResource(R.string.menu_hide_duplicates)) },
             trailingIcon = { Checkbox(settings.hideDuplicates, onCheckedChange = null) },
+            modifier = Modifier.checkable(settings.hideDuplicates),
             onClick = { onHideDuplicates(!settings.hideDuplicates) },
         )
         DropdownMenuItem(
@@ -242,7 +251,7 @@ fun <T> ChoiceDialog(
                     Row(
                         Modifier
                             .fillMaxWidth()
-                            .clickable { onSelect(value); onDismiss() }
+                            .selectable(selected = value == selected, role = Role.RadioButton) { onSelect(value); onDismiss() }
                             .padding(vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -255,6 +264,12 @@ fun <T> ChoiceDialog(
         confirmButton = {},
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
+}
+
+/** Lets TalkBack announce a menu entry as a checkbox together with its state. */
+private fun Modifier.checkable(checked: Boolean): Modifier = semantics {
+    role = Role.Checkbox
+    toggleableState = ToggleableState(checked)
 }
 
 @Composable
