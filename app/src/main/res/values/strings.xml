@@ -56,4 +56,8 @@
     <string name="open_disclaimer_body">The action of a notification can not be saved reliably. Tapping an entry only works while the original notification is recent and this app has not been restarted; otherwise you will see that the action is not available anymore.</string>
     <string name="accept">Accept</string>
     <string name="reject">Reject</string>
+    <string name="menu_require_auth">Require authentication</string>
+    <string name="auth_prompt_title">Sign in to view the notifications</string>
+    <string name="auth_unlock">Unlock</string>
+    <string name="auth_setup_lock">Set up a screen lock in your phone\'s settings first.</string>
 </resources>

@@ -64,6 +64,7 @@ private fun copyToClipboard(context: Context, item: NotificationItem) {
 @Composable
 fun MainScreen(
     permissionCard: @Composable () -> Unit,
+    onRequireAuth: (Boolean) -> Unit = {},
     viewModel: MainViewModel = viewModel(),
 ) {
     val apps by viewModel.apps.collectAsState()
@@ -131,6 +132,8 @@ fun MainScreen(
                                 onClearAll = { viewModel.clearHistory(Selection.AllApps) },
                                 openNotifications = settings.openNotifications,
                                 onOpenNotifications = viewModel::setOpenNotifications,
+                                requireAuth = settings.requireAuth,
+                                onRequireAuth = onRequireAuth,
                             )
                         },
                     )

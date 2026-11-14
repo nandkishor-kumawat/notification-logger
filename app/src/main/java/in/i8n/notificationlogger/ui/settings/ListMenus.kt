@@ -48,6 +48,8 @@ fun AppListMenu(
     onClearAll: () -> Unit = {},
     openNotifications: Boolean = false,
     onOpenNotifications: (Boolean) -> Unit = {},
+    requireAuth: Boolean = false,
+    onRequireAuth: (Boolean) -> Unit = {},
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     var dialog by remember { mutableStateOf<Dialog?>(null) }
@@ -68,6 +70,11 @@ fun AppListMenu(
                 // Turning it on needs the user to accept the disclaimer first.
                 if (openNotifications) onOpenNotifications(false) else dialog = Dialog.OPEN_DISCLAIMER
             },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.menu_require_auth)) },
+            trailingIcon = { Checkbox(requireAuth, onCheckedChange = null) },
+            onClick = { menuOpen = false; onRequireAuth(!requireAuth) },
         )
         DropdownMenuItem(
             text = { Text(stringResource(R.string.menu_export)) },
