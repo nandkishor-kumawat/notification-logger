@@ -1,6 +1,6 @@
 package `in`.i8n.notificationlogger.ui.notifications
 
-import android.text.format.DateUtils
+import android.text.format.DateFormat
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -23,10 +23,20 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemKey
 import `in`.i8n.notificationlogger.R
@@ -43,8 +53,10 @@ fun NotificationListScreen(
     onBack: (() -> Unit)?,
     modifier: Modifier = Modifier,
     menu: @Composable () -> Unit = {},
+    banner: (@Composable () -> Unit)? = null,
     listState: LazyListState = rememberLazyListState(),
 ) {
+    FollowNewestItems(items, listState)
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -64,19 +76,25 @@ fun NotificationListScreen(
             )
         },
     ) { padding ->
-        if (items.itemCount == 0) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Text(stringResource(R.string.notification_list_empty), style = MaterialTheme.typography.bodyLarge)
-            }
-        } else {
-            LazyColumn(
-                Modifier.fillMaxSize().padding(padding),
-                state = listState,
-                contentPadding = PaddingValues(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(count = items.itemCount, key = items.itemKey { it.id }) { index ->
-                    items[index]?.let { NotificationCard(it, showAppName) }
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            if (banner != null) Box(Modifier.padding(12.dp)) { banner() }
+            if (items.itemCount == 0) {
+                // While the first page loads, show nothing rather than a misleading empty message.
+                if (items.loadState.refresh !is LoadState.Loading) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(stringResource(R.string.notification_list_empty), style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+            } else {
+                LazyColumn(
+                    Modifier.fillMaxSize(),
+                    state = listState,
+                    contentPadding = PaddingValues(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(count = items.itemCount, key = items.itemKey { it.id }) { index ->
+                        items[index]?.let { NotificationCard(it, showAppName) }
+                    }
                 }
             }
         }
@@ -102,14 +120,37 @@ fun NotificationCard(item: NotificationItem, showAppName: Boolean, modifier: Mod
                 )
             }
             Text(
-                DateUtils.formatDateTime(
-                    androidx.compose.ui.platform.LocalContext.current,
-                    item.time,
-                    DateUtils.FORMAT_SHOW_DATE or DateUtils.FORMAT_SHOW_TIME or DateUtils.FORMAT_ABBREV_ALL,
-                ),
+                rememberTimeFormat().format(Date(item.time)),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+    }
+}
+
+/** "14 Nov, 10:39:05" in the user's locale and 12/24-hour preference. */
+@Composable
+private fun rememberTimeFormat(): SimpleDateFormat = remember {
+    val locale = Locale.getDefault()
+    SimpleDateFormat(DateFormat.getBestDateTimePattern(locale, "dMMMjmmss"), locale)
+}
+
+/**
+ * With newest-first sorting a new notification is inserted at the top, and the list keeps the
+ * previously visible item in place, so the new one would appear off-screen. If the user was
+ * looking at the top, scroll up to show it; if they had scrolled down to read, leave them be.
+ */
+@Composable
+private fun FollowNewestItems(items: LazyPagingItems<NotificationItem>, listState: LazyListState) {
+    var previousFirstId by remember { mutableStateOf<Long?>(null) }
+    val firstId = if (items.itemCount > 0) items.peek(0)?.id else null
+    LaunchedEffect(firstId) {
+        val previous = previousFirstId
+        previousFirstId = firstId
+        if (previous == null || firstId == null || previous == firstId) return@LaunchedEffect
+        // How many items were added above the old first item (-1 = it's gone, e.g. re-sorted).
+        val added = items.itemSnapshotList.indexOfFirst { it?.id == previous }
+        withFrameNanos { } // let the list apply the insertion before reading its position
+        if (added > 0 && listState.firstVisibleItemIndex <= added) listState.animateScrollToItem(0)
     }
 }

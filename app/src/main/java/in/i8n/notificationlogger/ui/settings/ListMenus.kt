@@ -31,16 +31,27 @@ import `in`.i8n.notificationlogger.data.model.NotificationSorting
 import `in`.i8n.notificationlogger.data.model.VersionHandling
 import `in`.i8n.notificationlogger.data.settings.AppSettings
 
+/** Quick "log this app" toggle for the open app. */
+data class PerAppLogging(val appLabel: String, val enabled: Boolean, val onChange: (Boolean) -> Unit)
+
 private enum class Dialog { APP_SORT, NOTIFICATION_SORT, VERSIONS }
 
 @Composable
-fun AppListMenu(sorting: AppSorting, onSorting: (AppSorting) -> Unit) {
+fun AppListMenu(
+    sorting: AppSorting,
+    onSorting: (AppSorting) -> Unit,
+    onFilterSettings: () -> Unit = {},
+) {
     var menuOpen by remember { mutableStateOf(false) }
     var dialog by remember { mutableStateOf<Dialog?>(null) }
     OverflowButton(menuOpen, { menuOpen = it }) {
         DropdownMenuItem(
             text = { Text(stringResource(R.string.menu_sort_apps)) },
             onClick = { menuOpen = false; dialog = Dialog.APP_SORT },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.filter_settings)) },
+            onClick = { menuOpen = false; onFilterSettings() },
         )
     }
     if (dialog == Dialog.APP_SORT) {
@@ -64,10 +75,18 @@ fun NotificationListMenu(
     onSorting: (NotificationSorting) -> Unit,
     onVersions: (VersionHandling) -> Unit,
     onHideDuplicates: (Boolean) -> Unit,
+    perApp: PerAppLogging? = null,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     var dialog by remember { mutableStateOf<Dialog?>(null) }
     OverflowButton(menuOpen, { menuOpen = it }) {
+        if (perApp != null) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.menu_log_app, perApp.appLabel)) },
+                trailingIcon = { Checkbox(perApp.enabled, onCheckedChange = null) },
+                onClick = { perApp.onChange(!perApp.enabled) },
+            )
+        }
         DropdownMenuItem(
             text = { Text(stringResource(R.string.menu_sort_notifications)) },
             onClick = { menuOpen = false; dialog = Dialog.NOTIFICATION_SORT },

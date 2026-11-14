@@ -17,6 +17,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,6 +42,13 @@ fun AppList(
     modifier: Modifier = Modifier,
     header: @Composable () -> Unit = {},
 ) {
+    // Tick every second so "x seconds ago" keeps counting.
+    val now by produceState(System.currentTimeMillis()) {
+        while (true) {
+            delay(1_000)
+            value = System.currentTimeMillis()
+        }
+    }
     LazyColumn(modifier.fillMaxSize()) {
         item { Box(Modifier.padding(horizontal = 16.dp)) { header() } }
         when {
@@ -58,6 +68,7 @@ fun AppList(
                         label = stringResource(R.string.all_apps),
                         packageName = null,
                         summary = AppSummary("", latest, total),
+                        now = now,
                         selected = selection == Selection.AllApps,
                         onClick = { onSelect(Selection.AllApps) },
                     )
@@ -67,6 +78,7 @@ fun AppList(
                         label = null,
                         packageName = app.packageName,
                         summary = app,
+                        now = now,
                         selected = selection == Selection.App(app.packageName),
                         onClick = { onSelect(Selection.App(app.packageName)) },
                     )
@@ -81,6 +93,7 @@ private fun AppRow(
     label: String?,
     packageName: String?,
     summary: AppSummary,
+    now: Long,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
@@ -110,7 +123,7 @@ private fun AppRow(
         }
         Text(
             DateUtils.getRelativeTimeSpanString(
-                summary.lastTime, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS,
+                summary.lastTime, now, DateUtils.SECOND_IN_MILLIS,
             ).toString(),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,

@@ -18,13 +18,16 @@ import `in`.i8n.notificationlogger.data.settings.AppSettings
 import kotlinx.coroutines.launch
 import `in`.i8n.notificationlogger.data.settings.SettingsRepository
 import `in`.i8n.notificationlogger.ui.appinfo.AppInfoProvider
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
@@ -53,6 +56,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { settingsRepo.setNotificationSorting(v) }
     fun setVersionHandling(v: VersionHandling) =
         viewModelScope.launch { settingsRepo.setVersionHandling(v) }
+    fun setWhitelistMode(v: Boolean) = viewModelScope.launch { settingsRepo.setWhitelistMode(v) }
+    /** [selected] = membership in the filter set (excluded / only-logged, depending on mode). */
+    fun setAppSelected(pkg: String, selected: Boolean) = viewModelScope.launch {
+        val set = settingsRepo.current().invertedApps.toMutableSet()
+        if (selected) set += pkg else set -= pkg
+        settingsRepo.setInvertedApps(set)
+    }
+    fun setLogging(pkg: String, enabled: Boolean) = viewModelScope.launch { settingsRepo.setLogging(pkg, enabled) }
+
     fun setHideDuplicates(v: Boolean) = viewModelScope.launch { settingsRepo.setHideDuplicates(v) }
 
     val selection = MutableStateFlow<Selection>(Selection.None)
@@ -72,28 +84,50 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    private data class ListConfig(
-        val selection: Selection,
-        val sorting: NotificationSorting,
-        val versions: VersionHandling,
-        val hideDuplicates: Boolean,
-    )
+    private class CachedList(val flow: Flow<PagingData<NotificationItem>>, val scope: CoroutineScope)
 
-    val notifications: Flow<PagingData<NotificationItem>> = combine(selection, settings) { sel, s ->
-        ListConfig(sel, s.notificationSorting, s.versionHandling, s.hideDuplicates)
-    }
-        .distinctUntilChanged()
-        .flatMapLatest { c ->
-            val pkg = when (val sel = c.selection) {
-                Selection.None -> return@flatMapLatest emptyFlow()
-                Selection.AllApps -> null
-                is Selection.App -> sel.packageName
-            }
-            Pager(PagingConfig(pageSize = 40, enablePlaceholders = false)) {
-                dao.paged(NotificationQuery.build(pkg, c.sorting, c.versions, c.hideDuplicates))
-            }.flow
+    /** Recently opened lists, so going back to an app is instant. Evicted ones stop collecting. */
+    private val lists = object : LinkedHashMap<Selection, CachedList>(8, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Selection, CachedList>): Boolean {
+            val evict = size > MAX_CACHED_LISTS
+            if (evict) eldest.value.scope.cancel()
+            return evict
         }
-        .cachedIn(viewModelScope)
+    }
+
+    /**
+     * Notifications for [selection]. Every selection has its own flow, so a screen opened for a
+     * different app starts empty instead of briefly showing the previous app's rows.
+     */
+    fun notificationsFor(selection: Selection): Flow<PagingData<NotificationItem>> =
+        lists.getOrPut(selection) {
+            val scope = CoroutineScope(
+                viewModelScope.coroutineContext + SupervisorJob(viewModelScope.coroutineContext[Job]),
+            )
+            val pkg = when (selection) {
+                Selection.None -> null
+                Selection.AllApps -> null
+                is Selection.App -> selection.packageName
+            }
+            val flow = if (selection == Selection.None) {
+                emptyFlow()
+            } else {
+                settings
+                    .map { Triple(it.notificationSorting, it.versionHandling, it.hideDuplicates) }
+                    .distinctUntilChanged()
+                    .flatMapLatest { (sorting, versions, hideDuplicates) ->
+                        Pager(PagingConfig(pageSize = 40, enablePlaceholders = false)) {
+                            dao.paged(NotificationQuery.build(pkg, sorting, versions, hideDuplicates))
+                        }.flow
+                    }
+                    .cachedIn(scope)
+            }
+            CachedList(flow, scope)
+        }.flow
+
+    private companion object {
+        const val MAX_CACHED_LISTS = 4
+    }
 
     fun select(value: Selection) {
         selection.value = value

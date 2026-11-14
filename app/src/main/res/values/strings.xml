@@ -27,4 +27,11 @@
     <string name="versions_show_all">Show all versions</string>
     <string name="versions_oldest_only">Oldest version only</string>
     <string name="versions_newest_only">Newest version only</string>
+    <string name="filter_settings">Filter settings</string>
+    <string name="mode_blacklist">Log all apps except selected</string>
+    <string name="mode_whitelist">Log only the following apps</string>
+    <string name="search_apps">Search Apps</string>
+    <string name="menu_log_app">Log %1$s</string>
+    <string name="logging_disabled_title">Logging was disabled for %1$s</string>
+    <string name="logging_disabled_hint">You can change that in the menu.</string>
 </resources>

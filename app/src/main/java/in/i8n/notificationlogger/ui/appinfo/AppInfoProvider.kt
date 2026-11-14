@@ -21,6 +21,9 @@ data class AppInfo(val label: String, val icon: ImageBitmap?)
 object AppInfoProvider {
     private val cache = ConcurrentHashMap<String, AppInfo>()
 
+    /** Already-loaded info, or null. Cheap; safe on the main thread. */
+    fun peek(packageName: String): AppInfo? = cache[packageName]
+
     /** Blocking; call off the main thread. */
     fun load(context: Context, packageName: String): AppInfo = cache.getOrPut(packageName) {
         val pm = context.applicationContext.packageManager
@@ -42,7 +45,10 @@ object AppInfoProvider {
 @Composable
 fun rememberAppInfo(packageName: String): State<AppInfo?> {
     val context = LocalContext.current
-    return produceState<AppInfo?>(null, packageName) {
-        value = withContext(Dispatchers.IO) { AppInfoProvider.load(context, packageName) }
+    // Start from the cache so rows that come back on screen don't flash the package name.
+    return produceState(AppInfoProvider.peek(packageName), packageName) {
+        // Re-assign even when cached: if the key changes, the old package's value must not linger.
+        value = AppInfoProvider.peek(packageName)
+            ?: withContext(Dispatchers.IO) { AppInfoProvider.load(context, packageName) }
     }
 }

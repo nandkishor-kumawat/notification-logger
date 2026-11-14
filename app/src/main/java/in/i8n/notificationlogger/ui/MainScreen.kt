@@ -17,6 +17,12 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -27,7 +33,12 @@ import `in`.i8n.notificationlogger.R
 import `in`.i8n.notificationlogger.ui.appinfo.rememberAppInfo
 import `in`.i8n.notificationlogger.ui.applist.AppList
 import `in`.i8n.notificationlogger.ui.notifications.NotificationListScreen
+import `in`.i8n.notificationlogger.ui.appinfo.AppEntry
+import `in`.i8n.notificationlogger.ui.appinfo.InstalledApps
 import `in`.i8n.notificationlogger.ui.settings.AppListMenu
+import `in`.i8n.notificationlogger.ui.settings.FilterSettingsScreen
+import `in`.i8n.notificationlogger.ui.settings.LoggingDisabledCard
+import `in`.i8n.notificationlogger.ui.settings.PerAppLogging
 import `in`.i8n.notificationlogger.ui.settings.NotificationListMenu
 
 private val TWO_PANE_MIN_WIDTH = 900.dp
@@ -41,11 +52,32 @@ fun MainScreen(
     val apps by viewModel.apps.collectAsState()
     val selection by viewModel.selection.collectAsState()
     val settings by viewModel.appSettings.collectAsState()
-    val items = viewModel.notifications.collectAsLazyPagingItems()
+    val items = remember(selection) { viewModel.notificationsFor(selection) }.collectAsLazyPagingItems()
+    var showFilter by rememberSaveable { mutableStateOf(false) }
+
+    if (showFilter) {
+        BackHandler { showFilter = false }
+        val context = LocalContext.current
+        val loggedPackages = apps.orEmpty().map { it.packageName }
+        val installed by produceState<List<AppEntry>?>(null, loggedPackages) {
+            value = InstalledApps.load(context, loggedPackages)
+        }
+        FilterSettingsScreen(
+            whitelistMode = settings.whitelistMode,
+            selectedApps = settings.invertedApps,
+            apps = installed,
+            onWhitelistMode = viewModel::setWhitelistMode,
+            onToggleApp = viewModel::setAppSelected,
+            onBack = { showFilter = false },
+        )
+        return
+    }
+
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val twoPane = maxWidth >= TWO_PANE_MIN_WIDTH
         val selectedPackage = (selection as? Selection.App)?.packageName
+        val loggingEnabled = selectedPackage == null || settings.shouldLog(selectedPackage)
         val appLabel = selectedPackage?.let { rememberAppInfo(it).value?.label ?: it }
         val detailTitle = when (selection) {
             Selection.None -> ""
@@ -59,7 +91,7 @@ fun MainScreen(
                 topBar = {
                     TopAppBar(
                         title = { Text(stringResource(R.string.app_name)) },
-                        actions = { AppListMenu(settings.appSorting, viewModel::setAppSorting) },
+                        actions = { AppListMenu(settings.appSorting, viewModel::setAppSorting, onFilterSettings = { showFilter = true }) },
                     )
                 },
             ) { padding ->
@@ -81,7 +113,15 @@ fun MainScreen(
                         viewModel::setNotificationSorting,
                         viewModel::setVersionHandling,
                         viewModel::setHideDuplicates,
+                        perApp = selectedPackage?.let { pkg ->
+                            PerAppLogging(detailTitle, loggingEnabled) { viewModel.setLogging(pkg, it) }
+                        },
                     )
+                },
+                banner = if (selectedPackage != null && !loggingEnabled) {
+                    { LoggingDisabledCard(detailTitle) }
+                } else {
+                    null
                 },
             )
         }
