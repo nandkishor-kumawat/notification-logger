@@ -15,4 +15,16 @@
         <item quantity="one">%d notification</item>
         <item quantity="other">%d notifications</item>
     </plurals>
+    <string name="more_options">More options</string>
+    <string name="cancel">Cancel</string>
+    <string name="menu_sort_apps">Sort apps</string>
+    <string name="menu_sort_notifications">Sort notifications</string>
+    <string name="menu_notification_updates">Notification updates</string>
+    <string name="menu_hide_duplicates">Hide duplicates</string>
+    <string name="sort_alphabetical">Alphabetical</string>
+    <string name="sort_newest_first">Newest first</string>
+    <string name="sort_oldest_first">Oldest first</string>
+    <string name="versions_show_all">Show all versions</string>
+    <string name="versions_oldest_only">Oldest version only</string>
+    <string name="versions_newest_only">Newest version only</string>
 </resources>

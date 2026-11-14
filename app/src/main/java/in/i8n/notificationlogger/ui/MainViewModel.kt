@@ -12,6 +12,10 @@ import `in`.i8n.notificationlogger.data.db.NotificationQuery
 import `in`.i8n.notificationlogger.data.model.AppSorting
 import `in`.i8n.notificationlogger.data.model.AppSummary
 import `in`.i8n.notificationlogger.data.model.NotificationItem
+import `in`.i8n.notificationlogger.data.model.NotificationSorting
+import `in`.i8n.notificationlogger.data.model.VersionHandling
+import `in`.i8n.notificationlogger.data.settings.AppSettings
+import kotlinx.coroutines.launch
 import `in`.i8n.notificationlogger.data.settings.SettingsRepository
 import `in`.i8n.notificationlogger.ui.appinfo.AppInfoProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -38,7 +42,18 @@ sealed interface Selection {
 @OptIn(ExperimentalCoroutinesApi::class)
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val dao = AppDatabase.get(application).notificationDao()
-    private val settings = SettingsRepository(application).settings
+    private val settingsRepo = SettingsRepository(application)
+    private val settings = settingsRepo.settings
+
+    val appSettings: StateFlow<AppSettings> =
+        settings.stateIn(viewModelScope, SharingStarted.Eagerly, AppSettings())
+
+    fun setAppSorting(v: AppSorting) = viewModelScope.launch { settingsRepo.setAppSorting(v) }
+    fun setNotificationSorting(v: NotificationSorting) =
+        viewModelScope.launch { settingsRepo.setNotificationSorting(v) }
+    fun setVersionHandling(v: VersionHandling) =
+        viewModelScope.launch { settingsRepo.setVersionHandling(v) }
+    fun setHideDuplicates(v: Boolean) = viewModelScope.launch { settingsRepo.setHideDuplicates(v) }
 
     val selection = MutableStateFlow<Selection>(Selection.None)
 
@@ -59,8 +74,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private data class ListConfig(
         val selection: Selection,
-        val sorting: `in`.i8n.notificationlogger.data.model.NotificationSorting,
-        val versions: `in`.i8n.notificationlogger.data.model.VersionHandling,
+        val sorting: NotificationSorting,
+        val versions: VersionHandling,
         val hideDuplicates: Boolean,
     )
 

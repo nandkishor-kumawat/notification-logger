@@ -27,6 +27,8 @@ import `in`.i8n.notificationlogger.R
 import `in`.i8n.notificationlogger.ui.appinfo.rememberAppInfo
 import `in`.i8n.notificationlogger.ui.applist.AppList
 import `in`.i8n.notificationlogger.ui.notifications.NotificationListScreen
+import `in`.i8n.notificationlogger.ui.settings.AppListMenu
+import `in`.i8n.notificationlogger.ui.settings.NotificationListMenu
 
 private val TWO_PANE_MIN_WIDTH = 900.dp
 
@@ -38,6 +40,7 @@ fun MainScreen(
 ) {
     val apps by viewModel.apps.collectAsState()
     val selection by viewModel.selection.collectAsState()
+    val settings by viewModel.appSettings.collectAsState()
     val items = viewModel.notifications.collectAsLazyPagingItems()
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -53,7 +56,12 @@ fun MainScreen(
         val list: @Composable (Modifier) -> Unit = { modifier ->
             Scaffold(
                 modifier = modifier,
-                topBar = { TopAppBar(title = { Text(stringResource(R.string.app_name)) }) },
+                topBar = {
+                    TopAppBar(
+                        title = { Text(stringResource(R.string.app_name)) },
+                        actions = { AppListMenu(settings.appSorting, viewModel::setAppSorting) },
+                    )
+                },
             ) { padding ->
                 Box(Modifier.padding(padding)) {
                     AppList(apps, selection, viewModel::select, header = permissionCard)
@@ -67,6 +75,14 @@ fun MainScreen(
                 showAppName = selection == Selection.AllApps,
                 onBack = if (showBack) ({ viewModel.select(Selection.None) }) else null,
                 modifier = modifier,
+                menu = {
+                    NotificationListMenu(
+                        settings,
+                        viewModel::setNotificationSorting,
+                        viewModel::setVersionHandling,
+                        viewModel::setHideDuplicates,
+                    )
+                },
             )
         }
 

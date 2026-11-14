@@ -19,14 +19,17 @@ object NotificationQuery {
             where += "package_name = ?"
             args += packageName
         }
-        when (versionHandling) {
-            VersionHandling.SHOW_ALL -> Unit
-            VersionHandling.OLDEST_ONLY -> where += "is_oldest_version = 1"
-            VersionHandling.NEWEST_ONLY -> where += "is_newest_version = 1"
+        val versionClause = when (versionHandling) {
+            VersionHandling.SHOW_ALL -> null
+            VersionHandling.OLDEST_ONLY -> "is_oldest_version = 1"
+            VersionHandling.NEWEST_ONLY -> "is_newest_version = 1"
         }
+        versionClause?.let { where += it }
         if (hideDuplicates) {
-            // Keep only the latest notification of each duplicate group.
-            where += "id IN (SELECT MAX(id) FROM notifications GROUP BY duplicate_group_id)"
+            // Keep only the latest notification of each duplicate group. The version filter is
+            // repeated inside so a group is judged by the rows that would otherwise be shown.
+            val inner = versionClause?.let { " WHERE $it" }.orEmpty()
+            where += "id IN (SELECT MAX(id) FROM notifications$inner GROUP BY duplicate_group_id)"
         }
         val order = when (sorting) {
             NotificationSorting.NEWEST_FIRST -> "time DESC, id DESC"

@@ -42,6 +42,7 @@ fun NotificationListScreen(
     showAppName: Boolean,
     onBack: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    menu: @Composable () -> Unit = {},
     listState: LazyListState = rememberLazyListState(),
 ) {
     Scaffold(
@@ -49,6 +50,7 @@ fun NotificationListScreen(
         topBar = {
             TopAppBar(
                 title = { Text(title, maxLines = 1) },
+                actions = { menu() },
                 navigationIcon = {
                     if (onBack != null) {
                         IconButton(onClick = onBack) {

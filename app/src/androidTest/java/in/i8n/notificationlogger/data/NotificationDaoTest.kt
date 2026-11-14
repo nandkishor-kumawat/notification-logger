@@ -213,3 +213,56 @@ class LargeDatasetTest {
         }
     }
 }
+
+/** Every sort × version × duplicates × package combination is checked against a plain-Kotlin model. */
+@RunWith(AndroidJUnit4::class)
+class QueryCombinationsTest {
+    @Test
+    fun allCombinationsMatchReferenceModel() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build()
+        try {
+            val dao = db.notificationDao()
+            var t = 0L
+            fun add(pkg: String, text: String, prev: Long? = null) = runBlocking {
+                dao.insert(NotificationItem(packageName = pkg, time = ++t, title = "T", text = text), prev)
+            }
+            // App a: duplicates, then an update chain whose members are also duplicates.
+            add("a", "x"); add("a", "x")
+            val v1 = add("a", "p1"); val v2 = add("a", "p1", v1); val v3 = add("a", "p2", v2)
+            add("a", "x")
+            // App b: interleaved, so duplicates are judged per app.
+            add("b", "x"); add("a", "x"); add("b", "x"); add("b", "y")
+
+            val everything = loadAll(dao, null, NotificationSorting.OLDEST_FIRST, VersionHandling.SHOW_ALL, false)
+            assertEquals(10, everything.size)
+
+            for (pkg in listOf(null, "a", "b")) for (sort in NotificationSorting.entries)
+                for (versions in VersionHandling.entries) for (hide in listOf(false, true)) {
+                    var expected = everything.filter { pkg == null || it.packageName == pkg }
+                    expected = when (versions) {
+                        VersionHandling.SHOW_ALL -> expected
+                        VersionHandling.OLDEST_ONLY -> expected.filter { it.isOldestVersion }
+                        VersionHandling.NEWEST_ONLY -> expected.filter { it.isNewestVersion }
+                    }
+                    if (hide) expected = expected.groupBy { it.duplicateGroupId }.values.map { g -> g.maxBy { it.id } }
+                    expected = if (sort == NotificationSorting.NEWEST_FIRST) {
+                        expected.sortedByDescending { it.id }
+                    } else {
+                        expected.sortedBy { it.id }
+                    }
+                    val actual = loadAll(dao, pkg, sort, versions, hide)
+                    assertEquals("pkg=$pkg $sort $versions hide=$hide", expected.map { it.id }, actual.map { it.id })
+                }
+        } finally {
+            db.close()
+        }
+    }
+
+    private suspend fun loadAll(
+        dao: NotificationDao, pkg: String?, sort: NotificationSorting, v: VersionHandling, hide: Boolean,
+    ): List<NotificationItem> {
+        val source = dao.paged(NotificationQuery.build(pkg, sort, v, hide))
+        return (source.load(PagingSource.LoadParams.Refresh(null, 100, false)) as PagingSource.LoadResult.Page).data
+    }
+}
