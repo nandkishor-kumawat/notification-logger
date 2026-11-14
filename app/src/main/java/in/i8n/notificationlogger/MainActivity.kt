@@ -1,16 +1,29 @@
 package `in`.i8n.notificationlogger
 
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import `in`.i8n.notificationlogger.capture.ServiceCheckUtil
+import `in`.i8n.notificationlogger.ui.onboarding.PermissionCard
 import `in`.i8n.notificationlogger.ui.theme.NotificationLoggerTheme
 
 class MainActivity : ComponentActivity() {
@@ -19,29 +32,41 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             NotificationLoggerTheme {
+                var listenerEnabled by remember { mutableStateOf(ServiceCheckUtil.isListenerEnabled(this)) }
+                // Re-check whenever we come back from system settings.
+                LifecycleResumeEffect(Unit) {
+                    listenerEnabled = ServiceCheckUtil.isListenerEnabled(this@MainActivity)
+                    onPauseOrDispose {}
+                }
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                    Column(Modifier.padding(innerPadding).padding(16.dp)) {
+                        if (!listenerEnabled) {
+                            PermissionCard(
+                                showRestrictedSettingsHint = ServiceCheckUtil.mayNeedRestrictedSettingsHint(this@MainActivity),
+                                onAllow = { openListenerSettings() },
+                                onOpenAppInfo = { openAppInfo() },
+                            )
+                        } else {
+                            Text(stringResource(R.string.home_logging_active))
+                        }
+                    }
                 }
             }
         }
     }
-}
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
+    private fun openListenerSettings() {
+        try {
+            startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+        } catch (_: ActivityNotFoundException) {
+            // Some OEM builds lack this screen; App info is the closest alternative.
+            openAppInfo()
+        }
+    }
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    NotificationLoggerTheme {
-        Greeting("Android")
+    private fun openAppInfo() {
+        startActivity(
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null)),
+        )
     }
 }

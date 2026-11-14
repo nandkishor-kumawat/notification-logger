@@ -1,3 +1,10 @@
 <resources>
     <string name="app_name">Notification Logger</string>
+
+    <string name="permission_title">Notification access required</string>
+    <string name="permission_body">To log your notifications, this app needs notification access. Everything stays on this device and is never sent anywhere.</string>
+    <string name="permission_allow">Allow access</string>
+    <string name="permission_restricted_hint">If the switch is greyed out or Android shows \"Restricted setting\": open App info, tap the ⋮ menu and choose \"Allow restricted settings\", then try again.</string>
+    <string name="permission_open_app_info">Open App info</string>
+    <string name="home_logging_active">Logging is active. Notifications will appear here.</string>
 </resources>
