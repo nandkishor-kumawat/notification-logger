@@ -1,10 +1,25 @@
 package `in`.i8n.notificationlogger.capture
 
+import android.content.ComponentName
 import android.content.Context
+import android.service.notification.NotificationListenerService
 import android.os.Build
 import androidx.core.app.NotificationManagerCompat
 
 object ServiceCheckUtil {
+
+    /**
+     * If access is granted but the listener is not bound (it can get stuck unbound after the
+     * app is updated or killed by an OEM task killer), ask the system to bind it again.
+     * Does nothing when it is already connected.
+     */
+    fun requestRebindIfEnabled(context: Context) {
+        if (!isListenerEnabled(context)) return
+        NotificationListenerService.requestRebind(
+            ComponentName(context, LoggerNotificationListenerService::class.java),
+        )
+    }
+
 
     /** True if the user has granted this app notification access. */
     fun isListenerEnabled(context: Context): Boolean =

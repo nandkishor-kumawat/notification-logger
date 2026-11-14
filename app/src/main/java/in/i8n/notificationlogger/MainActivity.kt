@@ -109,6 +109,7 @@ class MainActivity : FragmentActivity() {
 
     override fun onStart() {
         super.onStart()
+        ServiceCheckUtil.requestRebindIfEnabled(this)
         AuthState.onActivityStarted()
     }
 

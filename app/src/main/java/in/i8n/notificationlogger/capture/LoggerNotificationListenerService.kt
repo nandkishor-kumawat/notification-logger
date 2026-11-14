@@ -1,5 +1,6 @@
 package `in`.i8n.notificationlogger.capture
 
+import android.content.ComponentName
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import `in`.i8n.notificationlogger.data.db.AppDatabase
@@ -25,6 +26,14 @@ class LoggerNotificationListenerService : NotificationListenerService() {
         saver?.close()
         saver = null
         super.onDestroy()
+    }
+
+    /**
+     * The system (or an OEM battery manager) can unbind a listener while access is still
+     * granted. Ask to be bound again; this is a no-op if the user revoked access.
+     */
+    override fun onListenerDisconnected() {
+        requestRebind(ComponentName(this, LoggerNotificationListenerService::class.java))
     }
 
     override fun onListenerConnected() {
