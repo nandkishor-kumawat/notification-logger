@@ -60,4 +60,6 @@
     <string name="auth_prompt_title">Sign in to view the notifications</string>
     <string name="auth_unlock">Unlock</string>
     <string name="auth_setup_lock">Set up a screen lock in your phone\'s settings first.</string>
+    <string name="privacy_policy">Privacy policy</string>
+    <string name="app_list_empty_no_access">Allow notification access to start logging</string>
 </resources>

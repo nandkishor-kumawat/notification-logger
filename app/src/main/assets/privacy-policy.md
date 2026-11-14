@@ -12,7 +12,7 @@ Notification Logger keeps a local history of the notifications your phone shows.
 
 ## What the app reads
 
-The app uses Android's **notification access**, which you grant in system settings. With it, the app reads each notification's content as it is posted. You decide which apps are logged in *Filter settings*, and you can revoke access at any time in system settings.
+The app uses Android's **notification access**, which you grant in system settings. With it, the app reads each notification's content as it is posted. You decide which apps are logged in _Filter settings_, and you can revoke access at any time in system settings.
 
 ## Exporting
 
@@ -25,14 +25,10 @@ Exporting to a text file only happens when you choose it. You pick where the fil
 
 ## Deleting your data
 
-- *Clear history* removes the log of one app or of all apps.
-- *Auto-delete old notifications* removes entries older than the period you choose.
+- _Clear history_ removes the log of one app or of all apps.
+- _Auto-delete old notifications_ removes entries older than the period you choose.
 - Uninstalling the app removes all of its data.
 
 ## Notification actions
 
-If you enable *Open notification on tap*, the app keeps each notification's tap action in memory only (never on disk) so you can open the original app screen. It is lost when the app process ends.
-
-## Contact
-
-Questions about this policy: add your contact address here before publishing.
+If you enable _Open notification on tap_, the app keeps each notification's tap action in memory only (never on disk) so you can open the original app screen. It is lost when the app process ends.

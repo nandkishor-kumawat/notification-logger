@@ -75,17 +75,19 @@ class MainActivity : FragmentActivity() {
                             onPauseOrDispose {}
                         }
                         MainScreen(
-                            permissionCard = {
+                            permissionCard = { openPrivacyPolicy ->
                                 if (!listenerEnabled) {
                                     PermissionCard(
                                         showRestrictedSettingsHint = ServiceCheckUtil.mayNeedRestrictedSettingsHint(this@MainActivity),
                                         onAllow = { openListenerSettings() },
                                         onOpenAppInfo = { openAppInfo() },
                                         modifier = Modifier.padding(vertical = 8.dp),
+                                        onOpenPrivacyPolicy = openPrivacyPolicy,
                                     )
                                 }
                             },
                             onRequireAuth = ::setRequireAuth,
+                            notificationAccess = listenerEnabled,
                         )
                     }
                 }

@@ -24,6 +24,7 @@ fun PermissionCard(
     onAllow: () -> Unit,
     onOpenAppInfo: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenPrivacyPolicy: (() -> Unit)? = null,
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -40,10 +41,15 @@ fun PermissionCard(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = onAllow) { Text(stringResource(R.string.permission_allow)) }
-                if (showRestrictedSettingsHint) {
-                    OutlinedButton(onClick = onOpenAppInfo) {
-                        Text(stringResource(R.string.permission_open_app_info))
+                if (onOpenPrivacyPolicy != null) {
+                    OutlinedButton(onClick = onOpenPrivacyPolicy) {
+                        Text(stringResource(R.string.privacy_policy))
                     }
+                }
+            }
+            if (showRestrictedSettingsHint) {
+                OutlinedButton(onClick = onOpenAppInfo) {
+                    Text(stringResource(R.string.permission_open_app_info))
                 }
             }
         }

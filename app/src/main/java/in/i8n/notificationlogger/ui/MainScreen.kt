@@ -42,6 +42,7 @@ import `in`.i8n.notificationlogger.R
 import `in`.i8n.notificationlogger.ui.appinfo.rememberAppInfo
 import `in`.i8n.notificationlogger.ui.applist.AppList
 import `in`.i8n.notificationlogger.ui.notifications.NotificationListScreen
+import `in`.i8n.notificationlogger.ui.privacy.PrivacyPolicyScreen
 import `in`.i8n.notificationlogger.ui.appinfo.AppEntry
 import `in`.i8n.notificationlogger.ui.appinfo.InstalledApps
 import `in`.i8n.notificationlogger.ui.settings.AppListMenu
@@ -63,8 +64,9 @@ private fun copyToClipboard(context: Context, item: NotificationItem) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
-    permissionCard: @Composable () -> Unit,
+    permissionCard: @Composable (onOpenPrivacyPolicy: () -> Unit) -> Unit,
     onRequireAuth: (Boolean) -> Unit = {},
+    notificationAccess: Boolean = true,
     viewModel: MainViewModel = viewModel(),
 ) {
     val apps by viewModel.apps.collectAsState()
@@ -73,6 +75,7 @@ fun MainScreen(
     val context = LocalContext.current
     val items = remember(selection) { viewModel.notificationsFor(selection) }.collectAsLazyPagingItems()
     var showFilter by rememberSaveable { mutableStateOf(false) }
+    var showPrivacy by rememberSaveable { mutableStateOf(false) }
 
     // Export: remember what to export while the system file picker is open.
     var pendingExport by remember { mutableStateOf<Selection?>(null) }
@@ -84,6 +87,12 @@ fun MainScreen(
     fun startExport(target: Selection, fileName: String) {
         pendingExport = target
         exportLauncher.launch(fileName)
+    }
+
+    if (showPrivacy) {
+        BackHandler { showPrivacy = false }
+        PrivacyPolicyScreen(onBack = { showPrivacy = false })
+        return
     }
 
     if (showFilter) {
@@ -134,13 +143,14 @@ fun MainScreen(
                                 onOpenNotifications = viewModel::setOpenNotifications,
                                 requireAuth = settings.requireAuth,
                                 onRequireAuth = onRequireAuth,
+                                onPrivacyPolicy = { showPrivacy = true },
                             )
                         },
                     )
                 },
             ) { padding ->
                 Box(Modifier.padding(padding)) {
-                    AppList(apps, selection, viewModel::select, header = permissionCard)
+                    AppList(apps, selection, viewModel::select, notificationAccess = notificationAccess, header = { permissionCard { showPrivacy = true } })
                 }
             }
         }

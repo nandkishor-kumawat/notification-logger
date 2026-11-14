@@ -40,6 +40,7 @@ fun AppList(
     selection: Selection,
     onSelect: (Selection) -> Unit,
     modifier: Modifier = Modifier,
+    notificationAccess: Boolean = true,
     header: @Composable () -> Unit = {},
 ) {
     // Tick every second so "x seconds ago" keeps counting.
@@ -55,7 +56,7 @@ fun AppList(
             apps == null -> Unit
             apps.isEmpty() -> item {
                 Text(
-                    stringResource(R.string.app_list_empty),
+                    stringResource(if (notificationAccess) R.string.app_list_empty else R.string.app_list_empty_no_access),
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.padding(24.dp),
                 )
