@@ -3,7 +3,11 @@ package `in`.i8n.notificationlogger.ui.notifications
 import android.text.format.DateFormat
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,6 +19,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -29,6 +34,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import java.text.SimpleDateFormat
@@ -36,6 +42,8 @@ import java.util.Date
 import java.util.Locale
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
@@ -122,29 +130,57 @@ fun NotificationCard(
         onLongClickLabel = stringResource(R.string.a11y_copy_notification),
         onLongClick = onLongClick,
     )) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            if (showAppName) {
-                val label = rememberAppInfo(item.packageName).value?.label ?: item.packageName
-                Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-            }
-            item.title?.let { Text(it, style = MaterialTheme.typography.titleSmall) }
-            item.text?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
-            if (item.progressIndeterminate) {
-                LinearProgressIndicator(Modifier.fillMaxWidth())
-            } else if (item.progressMax > 0) {
-                LinearProgressIndicator(
-                    progress = { (item.progress.toFloat() / item.progressMax).coerceIn(0f, 1f) },
-                    modifier = Modifier.fillMaxWidth(),
+        var expanded by rememberSaveable(item.id) { mutableStateOf(false) }
+        // Whether the collapsed text was cut off; only then is there anything to expand.
+        var overflows by remember(item.id) { mutableStateOf(false) }
+        Row(Modifier.animateContentSize()) {
+            Column(
+                Modifier.weight(1f).padding(start = 12.dp, top = 12.dp, bottom = 12.dp, end = if (overflows) 0.dp else 12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                if (showAppName) {
+                    val label = rememberAppInfo(item.packageName).value?.label ?: item.packageName
+                    Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                }
+                item.title?.let { Text(it, style = MaterialTheme.typography.titleSmall) }
+                item.text?.let {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = if (expanded) Int.MAX_VALUE else COLLAPSED_LINES,
+                        overflow = TextOverflow.Ellipsis,
+                        onTextLayout = { layout -> if (!expanded) overflows = layout.hasVisualOverflow },
+                    )
+                }
+                if (item.progressIndeterminate) {
+                    LinearProgressIndicator(Modifier.fillMaxWidth())
+                } else if (item.progressMax > 0) {
+                    LinearProgressIndicator(
+                        progress = { (item.progress.toFloat() / item.progressMax).coerceIn(0f, 1f) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                Text(
+                    rememberTimeFormat().format(Date(item.time)),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Text(
-                rememberTimeFormat().format(Date(item.time)),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            if (overflows) {
+                val rotation by animateFloatAsState(if (expanded) 180f else 0f, label = "expandArrow")
+                IconButton(onClick = { expanded = !expanded }) {
+                    Icon(
+                        Icons.Filled.KeyboardArrowDown,
+                        contentDescription = stringResource(if (expanded) R.string.a11y_collapse_notification else R.string.a11y_expand_notification),
+                        modifier = Modifier.size(24.dp).rotate(rotation),
+                    )
+                }
+            }
         }
     }
 }
+
+private const val COLLAPSED_LINES = 2
 
 /** "14 Nov, 10:39:05" in the user's locale and 12/24-hour preference. */
 @Composable

@@ -64,4 +64,6 @@
     <string name="app_list_empty_no_access">Allow notification access to start logging</string>
     <string name="a11y_open_notification">Open original notification</string>
     <string name="a11y_copy_notification">Copy to clipboard</string>
+    <string name="a11y_expand_notification">Show full notification</string>
+    <string name="a11y_collapse_notification">Show less</string>
 </resources>
